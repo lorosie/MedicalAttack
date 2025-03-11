@@ -2,14 +2,25 @@ import numpy as np
 import pandas as pd
 import joblib
 import onnxruntime as ort
+from art.attacks.inference.membership_inference import MembershipInferenceBlackBox
 from art.attacks.inference.membership_inference import MembershipInferenceBlackBoxRuleBased
-from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier
+from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier, \
+    ScikitlearnDecisionTreeClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score, roc_curve, precision_score, recall_score
 from sklearn.model_selection import train_test_split
+import requests
+from io import BytesIO
+
 
 # 数据加载和预处理
-data_path = r"E:\PycharmProjects\PythonProject1\data\diabetes_processed2.csv"
-data1 = pd.read_csv(data_path)  # 使用正确的分隔符
+data_url = "https://attack-oss.oss-cn-chengdu.aliyuncs.com/excel/1741430335128_新CardioTrain.xlsx"
+
+# 使用 requests 从 URL 下载数据
+response = requests.get(data_url, timeout=30)
+response.raise_for_status()
+
+# 使用 pandas 从 BytesIO 对象加载数据
+data1 = pd.read_excel(BytesIO(response.content))
 
 # 检查数据
 print("数据形状:", data1.shape)
@@ -29,15 +40,17 @@ random_state = 42
 x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
 
 # 加载模型
-model_path = r"E:\网安\Attack(2)\Attack\models\随机森林模型\糖尿病\model_randomforest_10.pkl"
-model = joblib.load(model_path)
+model_url = "https://attack-oss.oss-cn-chengdu.aliyuncs.com/models/1741697212840_model2_decision_tree_100.pkl"
 
-# 加载 ONNX 模型
-# model_path = r"\Download\牛头马面\Attack\models\随机森林模型\心脑血管\model2_randomforest_10.onnx"
-# model = ort.InferenceSession(model_path)
+# 使用 requests 从 URL 下载模型
+response = requests.get(model_url, timeout=30)
+response.raise_for_status()
+
+# 使用 joblib 从 BytesIO 对象加载模型
+model = joblib.load(BytesIO(response.content))
 
 # 封装为 ART 支持的分类器
-art_classifier = ScikitlearnRandomForestClassifier(model)
+art_classifier = ScikitlearnDecisionTreeClassifier(model)
 
 # 计算模型准确率
 train_accuracy = accuracy_score(y_train, model.predict(x_train))
@@ -83,7 +96,6 @@ def calc_precision_recall(predicted, actual, positive_value=1):
 # 使用sklearn计算精确率和召回率
 precision = precision_score(y_true, y_pred)
 recall = recall_score(y_true, y_pred)
-
 
 # 输出结果
 print(f"Model Training Accuracy: {train_accuracy:.4f}")
