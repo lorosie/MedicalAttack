@@ -1,0 +1,6 @@
+[
+  {
+    "model": "https://attack-oss.oss-cn-chengdu.aliyuncs.com/models/1741431442047_decision_tree_model.onnx",
+    "error": "Unable to load from type '<class '_io.BytesIO'>'"
+  }
+]

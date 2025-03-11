@@ -1,0 +1,4 @@
+     {
+         "heart_disease": "path/to/predefined/heart.csv",
+         "diabetes": "path/to/predefined/diabetes.csv"
+     }
