@@ -9,6 +9,8 @@ from sklearn.model_selection import train_test_split
 from art.estimators.classification.scikitlearn import ScikitlearnRandomForestClassifier, ScikitlearnDecisionTreeClassifier
 from art.attacks.inference.membership_inference import MembershipInferenceBlackBox, MembershipInferenceBlackBoxRuleBased
 from art.attacks.inference.membership_inference import ShadowModels
+from sklearn.tree import DecisionTreeClassifier
+from art.estimators.classification.scikitlearn import ScikitlearnClassifier
 
 # 数据加载和预处理
 def load_and_preprocess_data(data_url):
@@ -79,18 +81,52 @@ def evaluate_attack(art_classifier, x_train, x_test, y_train, y_test, attack_met
             inferred_train = attack.infer(x_train[attack_train_size:], y_train[attack_train_size:])
             inferred_test = attack.infer(x_test[attack_test_size:], y_test[attack_test_size:])
         elif attack_method == "Shadow":
-            from art.attacks.inference.membership_inference import ShadowModels
-            shadow_models = ShadowModels(
-                estimator=art_classifier,
-                num_shadows=10,
-                random_state=42
-            )
+            # 创建一个与原始模型相同类型的模型作为模板
+            if isinstance(art_classifier, ScikitlearnRandomForestClassifier):
+                shadow_model_template = sklearn.ensemble.RandomForestClassifier(
+                    n_estimators=5, random_state=42
+                )
+            elif isinstance(art_classifier, ScikitlearnDecisionTreeClassifier):
+                shadow_model_template = sklearn.tree.DecisionTreeClassifier(random_state=42)
+            else:
+                shadow_model_template = None
+
+            # 尝试不同的参数组合
+            try:
+                # 尝试方法1：使用最新版本的参数
+                shadow_models = ShadowModels(
+                    classifier=art_classifier,
+                    num_shadow_models=5,  # 减少影子模型数量以加快训练
+                    random_state=42
+                )
+            except TypeError:
+                try:
+                    # 尝试方法2：使用旧版本的参数
+                    shadow_models = ShadowModels(
+                        classifier=art_classifier,
+                        n_shadow_estimators=5,
+                        random_state=42
+                    )
+                except TypeError:
+                    # 尝试方法3：添加shadow_model_template参数
+                    shadow_models = ShadowModels(
+                        classifier=art_classifier,
+                        n_shadow_estimators=5,
+                        shadow_model_template=shadow_model_template,
+                        random_state=42
+                    )
+
+            # 创建攻击实例
             attack = MembershipInferenceBlackBox(
-                estimator=art_classifier,
+                classifier=art_classifier,
                 shadow_models=shadow_models
             )
+
+            print("正在训练影子模型，这可能需要一些时间...")
             attack.fit(x_train[:attack_train_size], y_train[:attack_train_size],
                        x_test[:attack_test_size], y_test[:attack_test_size])
+
+            print("影子模型训练完成，开始推理...")
             inferred_train = attack.infer(x_train[attack_train_size:], y_train[attack_train_size:])
             inferred_test = attack.infer(x_test[attack_test_size:], y_test[attack_test_size:])
         else:
@@ -161,7 +197,7 @@ def main():
 
         # 4. 执行攻击评估
         print("初始化攻击方法...")
-        attack_method = ("Shadow")  # 可以选择 "RuleBased" 或 "BlackBox"
+        attack_method = "Shadow"  # 修改这里：从元组改为字符串
         attack_results = evaluate_attack(art_classifier, x_train, x_test, y_train, y_test, attack_method)
 
         # 5. 输出攻击结果
