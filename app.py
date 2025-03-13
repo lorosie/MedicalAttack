@@ -11,12 +11,18 @@ from base_attack import load_and_preprocess_data, load_and_wrap_model, evaluate_
 
 app = Flask(__name__)
 
+# 根路径
+@app.route('/', methods=['GET'])
+def home():
+    return "Welcome to the Attack API. Use the /attack endpoint to perform attacks."
+
 # API接口
 @app.route('/attack', methods=['POST'])
 def attack():
     try:
         # 获取参数
         data = request.json
+        print("Received data:", data)  # 添加日志信息
         data_url = data.get('dataUrl')
         model_url = data.get('modelUrl')
         attack_method = data.get('attackMethod')
@@ -58,10 +64,23 @@ def attack():
                 'train_accuracy': float(train_acc),
                 'test_accuracy': float(test_acc)
             },
-            'attack_results': attack_results
+            'attack_results': {
+                'member_acc': float(attack_results['member_acc']),
+                'nonmember_acc': float(attack_results['nonmember_acc']),
+                'overall_acc': float(attack_results['overall_acc']),
+                'precision': float(attack_results['precision']),
+                'recall': float(attack_results['recall']),
+                'auc': float(attack_results['auc']),
+                'roc_curve': {
+                    'fpr': attack_results['roc_curve'][0].tolist(),  # 将ndarray转换为列表
+                    'tpr': attack_results['roc_curve'][1].tolist()   # 将ndarray转换为列表
+                },
+                'tpr_at_low_fpr': float(attack_results['tpr_at_low_fpr'])
+            }
         })
 
     except Exception as e:
+        print("Error:", str(e))  # 添加日志信息
         return jsonify({'error': str(e)}), 500
 
 
