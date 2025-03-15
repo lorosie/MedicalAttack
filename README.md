@@ -65,6 +65,12 @@ response = requests.post("http://localhost:5000/attack", json=payload)
 print(response.json())
 ```
 
+访问网址：attack.eastyn.cn
+测试账号：Eastyn
+测试密码：Hu123456
+测试数据集下载链接：https://attack-oss.oss-cn-chengdu.aliyuncs.com/excel/1741752570596_预处理后的Cardio.xlsx
+测试模型下载链接：https://attack-oss.oss-cn-chengdu.aliyuncs.com/models/1741933185218_model2_randomforest_10.pkl
+
 ## 📚 文献支持
 本系统实现参考以下前沿研究成果：
 1. Shokri et al. - Membership Inference Attacks Against Machine Learning Models (IEEE S&P 2017)
